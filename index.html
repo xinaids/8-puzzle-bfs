@@ -366,15 +366,17 @@ html, body {
 
   <div class="toolbar">
     <span>Estado inicial:</span>
-    <input class="xp-input" type="text" id="inputState" value="123456708" placeholder="Ex: 123456708 ou 1 2 3 4 5 6 7 0 8">
+    <input class="xp-input" type="text" id="inputState" value="123450786" placeholder="Ex: 123456708 ou 1 2 3 4 5 6 7 0 8">
     <select class="xp-select" id="presetSel" onchange="loadPreset(this.value)">
       <option value="">— Exemplos —</option>
-      <option value="123456708">Fácil (1 mov)</option>
-      <option value="123405786">Simples (2 mov)</option>
-      <option value="012453786">Médio (5 mov)</option>
-      <option value="162503478">Médio (8 mov)</option>
-      <option value="283164705">Difícil (13 mov)</option>
-      <option value="867254301">Muito difícil</option>
+      <option value="123450786">Fácil (1 mov)</option>
+      <option value="120453786">Simples (2 mov)</option>
+      <option value="152483706">Médio (5 mov)</option>
+      <option value="052183476">Médio (8 mov)</option>
+      <option value="582073146">Difícil (13 mov)</option>
+      <option value="870542163">Difícil (20 mov)</option>
+      <option value="867254301">Muito difícil (31 mov)</option>
+      <option value="123456870">Sem solução ❌</option>
     </select>
     <div class="sep-v"></div>
     <button class="xp-btn primary" onclick="solve()">▶ Resolver</button>
@@ -534,7 +536,7 @@ function solve() {
   renderBig(raw, null);
   setTimeout(() => {
     const t0=performance.now(), result=bfs(raw), elapsed=(performance.now()-t0).toFixed(1);
-    if (!result) { setLog('❌ Sem solução para este estado.','#cc0000'); return; }
+    if (!result) { setLog('❌ Sem solução para este estado.','#cc0000'); setProgress(0); setStatus('Sem solução','BFS | Python 3'); return; }
     solution=[{state:raw,move:null},...result.path]; currentStep=0;
     document.getElementById('statMoves').textContent=result.path.length;
     document.getElementById('statTested').textContent=result.tested;
