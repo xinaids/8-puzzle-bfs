@@ -534,6 +534,32 @@ function solve() {
     return;
   }
   renderBig(raw, null);
+
+  // Verificacao rapida de solubilidade (contagem de inversoes)
+  function isSolvable(state) {
+    const nums = state.filter(x => x !== 0);
+    let inv = 0;
+    for (let i = 0; i < nums.length; i++)
+      for (let j = i + 1; j < nums.length; j++)
+        if (nums[i] > nums[j]) inv++;
+    return inv % 2 === 0;
+  }
+
+  if (!isSolvable(raw)) {
+    document.getElementById('statMoves').textContent  = '—';
+    document.getElementById('statTested').textContent = '—';
+    document.getElementById('statTime').textContent   = '—';
+    document.getElementById('statDepth').textContent  = '—';
+    document.getElementById('slider').value = 0;
+    document.getElementById('slider').max = 0;
+    document.getElementById('stepsInner').innerHTML = '<i style="color:#aaa;font-size:11px;line-height:80px;padding:0 12px">Aguardando solução...</i>';
+    solution = []; currentStep = 0;
+    setLog('❌ Sem solução para este estado (número ímpar de inversões).','#cc0000');
+    setProgress(0);
+    setStatus('Sem solução','BFS | Python 3');
+    return;
+  }
+
   setTimeout(() => {
     const t0=performance.now(), result=bfs(raw), elapsed=(performance.now()-t0).toFixed(1);
     if (!result) { setLog('❌ Sem solução para este estado.','#cc0000'); setProgress(0); setStatus('Sem solução','BFS | Python 3'); return; }
