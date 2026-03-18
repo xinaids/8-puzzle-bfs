@@ -4,6 +4,20 @@ import time
 # Estado final desejado
 ESTADO_FINAL = (1, 2, 3, 4, 5, 6, 7, 8, 0)
 
+def is_solvable(estado):
+    """Verifica se o estado inicial é solúvel contando inversões.
+    Uma inversão ocorre quando uma peça de valor maior aparece antes
+    de uma peça de valor menor na sequência linear do tabuleiro.
+    Se o número de inversões for ímpar, o estado é insolúvel.
+    """
+    nums = [x for x in estado if x != 0]
+    inversoes = sum(
+        1 for i in range(len(nums))
+          for j in range(i + 1, len(nums))
+          if nums[i] > nums[j]
+    )
+    return inversoes % 2 == 0
+
 def encontrar_zero(estado):
     """Retorna o índice do espaço vazio (0) no estado."""
     return estado.index(0)
@@ -99,6 +113,11 @@ def resolver(entrada):
 
     imprimir_grade(estado_inicial, "Estado Inicial:")
     imprimir_grade(ESTADO_FINAL, "Estado Final:")
+
+    if not is_solvable(estado_inicial):
+        print("\n❌ Sem solução para este estado inicial.")
+        print("   (número ímpar de inversões — estado insolúvel)")
+        return
 
     print("\nBuscando solução...")
     inicio = time.time()
