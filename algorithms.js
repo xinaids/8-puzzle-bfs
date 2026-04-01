@@ -162,7 +162,7 @@ function astar(initial) {
       if (!visited.has(nk) || visited.get(nk) > ng) {
         const np = [...path, { move, state: ns }];
         if (arrEq(ns, GOAL)) return { path: np, tested: tested + 1 };
-        heapPush([ng + manhattan(ns), ng, ns, np]);
+        heapPush([manhattan(ns), ng, ns, np]);
       }
     }
   }
