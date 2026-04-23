@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogo da Velha — Minimax</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --face: #ece9d8; --face-dark: #d4d0c8; --highlight: #ffffff;
+  --shadow: #808080; --dark-shadow: #404040; --win-blue: #0055ea;
+}
+html, body {
+  width: 100%; min-height: 100vh;
+  background: #3a6ea5;
+  font-family: Tahoma, 'MS Sans Serif', Geneva, sans-serif;
+  font-size: 11px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px; gap: 8px; padding-bottom: 46px;
+}
+
+/* ── Desktop top bar ─────────────────────────────── */
+.desktop-bar { width: 100%; max-width: 860px; display: flex; gap: 12px; padding: 0 4px; }
+.desk-icon { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 4px; border: 1px solid transparent; border-radius: 2px; }
+.desk-icon:hover { border-color: #88aadd; background: rgba(58,110,165,0.4); }
+.desk-icon-img { font-size: 28px; filter: drop-shadow(1px 1px 1px #0008); }
+.desk-icon-lbl { color: white; font-size: 10px; text-shadow: 1px 1px 2px #000; text-align: center; }
+
+/* ── XP Window ───────────────────────────────────── */
+.window { background: var(--face); border: 2px solid; border-color: var(--highlight) var(--dark-shadow) var(--dark-shadow) var(--highlight); box-shadow: 2px 2px 8px rgba(0,0,0,0.6); width: 100%; max-width: 860px; }
+.titlebar { background: linear-gradient(180deg, #2b5fce 0%, #3a87d4 8%, #2166c4 50%, #1e5bb8 51%, #2a7dd4 100%); padding: 3px 5px; display: flex; align-items: center; gap: 5px; height: 26px; user-select: none; }
+.titlebar-icon { font-size: 14px; flex-shrink: 0; }
+.titlebar-text { flex: 1; color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+.titlebar-btns { display: flex; gap: 2px; }
+.tb-btn { width: 20px; height: 20px; background: linear-gradient(180deg, #f4f0e4 0%, #d0ccc0 100%); border: 1px solid; border-color: var(--highlight) var(--dark-shadow) var(--dark-shadow) var(--highlight); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; }
+.tb-btn.close { background: linear-gradient(180deg, #e05050 0%, #b82020 100%); color: white; }
+.tb-btn.close:hover { filter: brightness(1.2); }
+.menubar { background: var(--face); border-bottom: 1px solid var(--face-dark); padding: 1px 4px; display: flex; }
+.menu-item { padding: 2px 8px; cursor: pointer; border-radius: 2px; }
+.menu-item:hover { background: var(--win-blue); color: white; }
+
+/* ── Toolbar ─────────────────────────────────────── */
+.toolbar {
+  background: linear-gradient(180deg, #f4f1e8 0%, #e0ddd4 100%);
+  border-bottom: 1px solid var(--shadow);
+  padding: 5px 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.toolbar-label { font-weight: bold; color: #333; margin-right: 2px; }
+.sep-v { width: 1px; height: 20px; margin: 0 3px; background: linear-gradient(180deg, transparent, var(--shadow), transparent); }
+
+/* ── Tabs ────────────────────────────────────────── */
+.tabs-bar { background: var(--face-dark); border-bottom: 2px solid var(--shadow); display: flex; padding: 4px 8px 0; gap: 2px; }
+.tab { padding: 4px 14px 3px; border: 1px solid var(--shadow); border-bottom: none; border-radius: 3px 3px 0 0; cursor: pointer; background: linear-gradient(180deg, #d8d4c8, #c4c0b4); font-size: 11px; font-weight: bold; position: relative; bottom: -1px; color: #555; white-space: nowrap; }
+.tab:hover { background: linear-gradient(180deg, #e8e4d8, #d8d4c8); color: #000; }
+.tab.active { background: var(--face); border-color: var(--shadow); border-bottom-color: var(--face); color: #000; z-index: 1; }
+.tab-panel { display: none; padding: 10px; }
+.tab-panel.active { display: block; }
+
+/* ── XP Buttons ──────────────────────────────────── */
+.xp-btn { background: linear-gradient(180deg, #f4f2ec 0%, #e8e4d8 40%, #d8d4c8 41%, #e4e0d4 100%); border: 1px solid; border-color: var(--highlight) var(--dark-shadow) var(--dark-shadow) var(--highlight); padding: 3px 10px; font-family: Tahoma, sans-serif; font-size: 11px; cursor: pointer; border-radius: 3px; white-space: nowrap; }
+.xp-btn:hover { background: linear-gradient(180deg, #fffce8, #ffe8a0 40%, #f0d870 41%, #ffe0a0); border-color: #b09030; }
+.xp-btn.active { background: linear-gradient(180deg, #c0d8f8, #90b8f0 40%, #70a0e8 41%, #a0c4f8 100%); border-color: #4060c0; font-weight: bold; }
+.xp-btn.primary { background: linear-gradient(180deg, #78c878 0%, #50b050 40%, #38a038 41%, #60c060 100%); border-color: #206020; color: white; font-weight: bold; text-shadow: 1px 1px #0006; }
+.xp-btn.primary:hover { filter: brightness(1.08); }
+.xp-btn.danger { background: linear-gradient(180deg, #f09898 0%, #d04040 40%, #b02020 41%, #e06060 100%); border-color: #800000; color: white; font-weight: bold; text-shadow: 1px 1px #0006; }
+
+/* ── Inset boxes ─────────────────────────────────── */
+.inset { border: 1px solid; border-color: var(--dark-shadow) var(--highlight) var(--highlight) var(--dark-shadow); background: var(--face); }
+.inset-title { color: white; font-size: 11px; font-weight: bold; padding: 2px 8px; text-shadow: 1px 1px #0004; }
+.inset-title.blue  { background: linear-gradient(180deg, #2b5fce, #1a4fa0); }
+.inset-title.red   { background: linear-gradient(180deg, #a03820, #7a2810); }
+.inset-title.green { background: linear-gradient(180deg, #206820, #145014); }
+.inset-title.purple{ background: linear-gradient(180deg, #504080, #382860); }
+.inset-body { padding: 8px; }
+
+/* ── Tabuleiro ───────────────────────────────────── */
+.board-wrap {
+  display: inline-block;
+  border: 3px solid;
+  border-color: var(--dark-shadow) var(--highlight) var(--highlight) var(--dark-shadow);
+  background: #d0ccc0;
+  padding: 4px;
+}
+.ttt-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 90px);
+  grid-template-rows: repeat(3, 90px);
+  gap: 4px;
+  background: #808080;
+}
+.ttt-cell {
+  width: 90px; height: 90px;
+  background: var(--face);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px; line-height: 1;
+  font-weight: bold;
+  cursor: default;
+  transition: background 0.1s;
+  user-select: none;
+  font-family: 'VT323', monospace;
+}
+.ttt-cell.empty { cursor: pointer; }
+.ttt-cell.empty:hover { background: #f0eed8; }
+.ttt-cell.x { color: #1a3fa0; text-shadow: 1px 2px 3px rgba(0,0,60,0.35); }
+.ttt-cell.o { color: #a02020; text-shadow: 1px 2px 3px rgba(60,0,0,0.35); }
+.ttt-cell.win { background: #fff8a0 !important; }
+.ttt-cell.win.x { color: #1a3fa0; }
+.ttt-cell.win.o { color: #a02020; }
+
+/* ── Status bar ──────────────────────────────────── */
+.status-bar {
+  border: 1px solid; border-color: var(--dark-shadow) var(--highlight) var(--highlight) var(--dark-shadow);
+  background: var(--face); padding: 3px 8px; font-size: 12px; font-weight: bold;
+  color: #333; margin-top: 6px; text-align: center; min-height: 22px;
+}
+.status-bar.win      { background: #d8f0d8; color: #006000; }
+.status-bar.lose     { background: #f0d8d8; color: #800000; }
+.status-bar.draw     { background: #f0f0d8; color: #606000; }
+.status-bar.thinking { background: #d8e8f8; color: #003090; }
+
+/* ── Stats table ─────────────────────────────────── */
+.stats-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.stats-table td { padding: 2px 6px; }
+.stats-table tr:nth-child(odd) { background: rgba(0,0,0,0.04); }
+.stats-table .lbl { font-weight: bold; color: #333; white-space: nowrap; }
+.stats-table .val { font-family: 'VT323', monospace; font-size: 1.4rem; color: #0000cc; }
+.stats-table .val.red { color: #c04000; }
+.stats-table .val.green { color: #006600; }
+.stats-table .val.purple { color: #600080; }
+
+/* ── Log box ─────────────────────────────────────── */
+.log-box { border: 1px solid; border-color: var(--dark-shadow) var(--highlight) var(--highlight) var(--dark-shadow); background: #000080; color: #00ff00; font-family: 'VT323', monospace; font-size: 1.1rem; padding: 6px 8px; height: 130px; overflow-y: auto; line-height: 1.5; }
+.log-box .log-x   { color: #88aaff; }
+.log-box .log-o   { color: #ff8888; }
+.log-box .log-ai  { color: #ffff00; }
+.log-box .log-win { color: #00ff88; }
+.log-box .log-lose{ color: #ff4444; }
+.log-box .log-draw{ color: #88ffff; }
+.log-box .log-sys { color: #aaaaaa; }
+.log-box .log-sep { color: #555555; }
+.log-box .log-cmp { color: #ff88ff; }
+
+/* ── Layout grid ─────────────────────────────────── */
+.game-layout { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+@media (max-width: 580px) { .game-layout { grid-template-columns: 1fr; } .ttt-grid { grid-template-columns: repeat(3,72px); grid-template-rows: repeat(3,72px); } .ttt-cell { width:72px; height:72px; font-size:42px; } }
+
+/* ── Compare tab ─────────────────────────────────── */
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.cmp-table th { color: white; padding: 3px 8px; text-align: left; font-size: 11px; font-weight: bold; }
+.cmp-table td { padding: 3px 8px; border-bottom: 1px solid #d0ccc0; }
+.cmp-table tr:hover td { background: rgba(0,0,255,0.04); }
+.cmp-head-mm  { background: linear-gradient(180deg, #2b5fce, #1a4fa0); }
+.cmp-head-ab  { background: linear-gradient(180deg, #206820, #145014); }
+.info-box { background: #fff8e8; border: 1px solid #d4a820; border-left: 3px solid #c08010; padding: 6px 10px; font-size: 11px; line-height: 1.6; margin: 6px 0; }
+.info-box b { color: #804000; }
+
+/* ── Taskbar ─────────────────────────────────────── */
+.taskbar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: linear-gradient(180deg, #245edc 0%, #1a4abf 8%, #1e52c8 50%, #1a4abf 51%, #2462d4 100%); display: flex; align-items: center; padding: 0 4px; gap: 4px; z-index: 1000; border-top: 1px solid #5088e0; }
+.start-btn { background: linear-gradient(180deg, #60c060 0%, #38a038 50%, #2c8c2c 51%, #50b050 100%); border: 1px solid #206020; border-radius: 10px 6px 6px 10px; padding: 2px 12px 2px 6px; color: white; font-weight: bold; font-size: 13px; font-family: Tahoma, sans-serif; text-shadow: 1px 1px #0006; cursor: pointer; height: 24px; display: flex; align-items: center; gap: 4px; }
+.taskbar-sep { width:1px; height:20px; background:rgba(255,255,255,0.25); margin:0 2px; }
+.taskbar-clock { margin-left:auto; background:linear-gradient(180deg,#1a4abf,#2462d4); border:1px solid #4070c0; border-top-color:#80aae0; color:white; font-size:11px; padding:2px 10px; height:22px; display:flex; align-items:center; border-radius:2px; }
+.taskbar-item { background:linear-gradient(180deg,#2a72e4,#1a54c0); border:1px solid #4070d0; border-top-color:#80aae8; border-left-color:#80aae8; color:white; font-size:11px; padding:2px 8px; height:22px; display:flex; align-items:center; gap:4px; border-radius:2px; cursor:pointer; }
+.taskbar-item:hover { filter:brightness(1.15); }
+</style>
+</head>
+<body>
+
+<!-- Desktop shortcuts -->
+<div class="desktop-bar">
+  <div class="desk-icon" ondblclick="location.href='../index.html'">
+    <div class="desk-icon-img">🖥️</div>
+    <div class="desk-icon-lbl">Desktop</div>
+  </div>
+  <div class="desk-icon" ondblclick="location.href='../puzzle/index.html'">
+    <div class="desk-icon-img">🧩</div>
+    <div class="desk-icon-lbl">8 Puzzle</div>
+  </div>
+  <div class="desk-icon" ondblclick="location.href='../queens/index.html'">
+    <div class="desk-icon-img">♛</div>
+    <div class="desk-icon-lbl">8 Rainhas</div>
+  </div>
+</div>
+
+<!-- Main Window -->
+<div class="window">
+
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="titlebar-icon">❌</div>
+    <div class="titlebar-text">Jogo da Velha — Minimax & Poda Alfa-Beta</div>
+    <div class="titlebar-btns">
+      <div class="tb-btn">_</div>
+      <div class="tb-btn">□</div>
+      <div class="tb-btn close" onclick="location.href='../index.html'">✕</div>
+    </div>
+  </div>
+
+  <!-- Menu bar -->
+  <div class="menubar">
+    <div class="menu-item" onclick="newGame()">Jogo</div>
+    <div class="menu-item" onclick="resetScore()">Placar</div>
+    <div class="menu-item" onclick="switchTab('info')">Ajuda</div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-label">Modo:</span>
+    <button class="xp-btn" id="btnHvAI" onclick="setMode('hvai')">👤 vs 🤖 IA</button>
+    <button class="xp-btn" id="btnHvH"  onclick="setMode('hvh')">👤 vs 👤</button>
+    <div class="sep-v"></div>
+    <span class="toolbar-label">Algoritmo:</span>
+    <button class="xp-btn" id="btnAB"      onclick="setAlgo(true)">✂️ Alfa-Beta</button>
+    <button class="xp-btn" id="btnMinimax" onclick="setAlgo(false)">🌳 Minimax Puro</button>
+    <div class="sep-v"></div>
+    <span class="toolbar-label">Jogar como:</span>
+    <button class="xp-btn" id="btnPlayX" onclick="setHumanPlayer('X')">✖ X</button>
+    <button class="xp-btn" id="btnPlayO" onclick="setHumanPlayer('O')">⭕ O</button>
+    <div class="sep-v"></div>
+    <button class="xp-btn primary" onclick="newGame()">▶ Nova Partida</button>
+    <button class="xp-btn danger"  onclick="resetScore()">🔄 Zerar Placar</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    <div class="tab active" id="tab-game"    onclick="switchTab('game')">🎮 Jogo</div>
+    <div class="tab"        id="tab-compare" onclick="switchTab('compare')">📊 Comparativo</div>
+    <div class="tab"        id="tab-info"    onclick="switchTab('info')">ℹ️ Sobre</div>
+  </div>
+
+  <!-- ══ PANEL: JOGO ══════════════════════════════ -->
+  <div class="tab-panel active" id="panel-game">
+    <div class="game-layout">
+
+      <!-- Left: tabuleiro -->
+      <div>
+        <div class="board-wrap">
+          <div class="ttt-grid">
+            <div class="ttt-cell" id="cell-0" onclick="handleCellClick(0)"></div>
+            <div class="ttt-cell" id="cell-1" onclick="handleCellClick(1)"></div>
+            <div class="ttt-cell" id="cell-2" onclick="handleCellClick(2)"></div>
+            <div class="ttt-cell" id="cell-3" onclick="handleCellClick(3)"></div>
+            <div class="ttt-cell" id="cell-4" onclick="handleCellClick(4)"></div>
+            <div class="ttt-cell" id="cell-5" onclick="handleCellClick(5)"></div>
+            <div class="ttt-cell" id="cell-6" onclick="handleCellClick(6)"></div>
+            <div class="ttt-cell" id="cell-7" onclick="handleCellClick(7)"></div>
+            <div class="ttt-cell" id="cell-8" onclick="handleCellClick(8)"></div>
+          </div>
+        </div>
+        <div class="status-bar" id="statusBar">Pronto</div>
+      </div>
+
+      <!-- Right: stats + log -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+
+        <!-- Placar -->
+        <div class="inset">
+          <div class="inset-title blue">🏆 Placar</div>
+          <div class="inset-body">
+            <table class="stats-table">
+              <tr><td class="lbl">Vitórias Humano</td><td class="val green" id="stat-wins-h">0</td></tr>
+              <tr><td class="lbl">Vitórias IA</td>     <td class="val red"   id="stat-wins-ai">0</td></tr>
+              <tr><td class="lbl">Empates</td>          <td class="val"       id="stat-draws">0</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stats última jogada IA -->
+        <div class="inset">
+          <div class="inset-title red">🤖 Última Jogada IA</div>
+          <div class="inset-body">
+            <table class="stats-table">
+              <tr><td class="lbl">Nós explorados</td>  <td class="val"        id="stat-nodes">—</td></tr>
+              <tr><td class="lbl">Podas realizadas</td> <td class="val red"    id="stat-prunings">—</td></tr>
+              <tr><td class="lbl">Profundidade</td>     <td class="val"        id="stat-depth">—</td></tr>
+              <tr><td class="lbl">Redução de nós</td>   <td class="val green"  id="stat-efficiency">—</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="inset">
+          <div class="inset-title purple">📋 Log da Partida</div>
+          <div class="inset-body" style="padding:4px;">
+            <div class="log-box" id="logBox"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PANEL: COMPARATIVO ════════════════════════ -->
+  <div class="tab-panel" id="panel-compare">
+    <div class="info-box">
+      <b>Modo Comparativo:</b> ative esta aba e jogue normalmente. A cada jogada da IA, ambos os algoritmos são executados em paralelo e os resultados são exibidos abaixo, permitindo visualizar a eficiência da poda alfa-beta.
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+      <div class="inset">
+        <div class="inset-title blue">🌳 Minimax Puro</div>
+        <div class="inset-body">
+          <table class="stats-table">
+            <tr><td class="lbl">Nós explorados</td><td class="val" id="cmp-nodes-mm">—</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="inset">
+        <div class="inset-title green">✂️ Alfa-Beta</div>
+        <div class="inset-body">
+          <table class="stats-table">
+            <tr><td class="lbl">Nós explorados</td><td class="val green" id="cmp-nodes-ab">—</td></tr>
+            <tr><td class="lbl">Podas realizadas</td><td class="val red" id="cmp-prunings">—</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="inset" style="margin-top:8px;">
+      <div class="inset-title purple">📊 Resultado da Comparação</div>
+      <div class="inset-body">
+        <table class="stats-table">
+          <tr><td class="lbl">Redução de nós (Alfa-Beta vs Minimax)</td><td class="val purple" id="cmp-reduction">—</td></tr>
+        </table>
+        <div class="info-box" style="margin-top:8px;">
+          <b>O que isso significa?</b> A poda alfa-beta elimina ramos da árvore de busca que nunca seriam escolhidos por nenhum jogador ótimo. A redução percentual mostra quantos nós deixaram de ser avaliados, sem perda de qualidade na decisão. No melhor caso, a complexidade cai de O(b<sup>m</sup>) para O(b<sup>m/2</sup>).
+        </div>
+      </div>
+    </div>
+
+    <!-- Log do comparativo -->
+    <div class="inset" style="margin-top:8px;">
+      <div class="inset-title purple">📋 Log Comparativo</div>
+      <div class="inset-body" style="padding:4px;">
+        <div class="log-box" id="logBoxCmp" style="height:160px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PANEL: SOBRE ═══════════════════════════════ -->
+  <div class="tab-panel" id="panel-info">
+    <div class="inset">
+      <div class="inset-title blue">📖 Sobre o Algoritmo Minimax</div>
+      <div class="inset-body">
+        <div class="info-box">
+          <b>Minimax</b> é um algoritmo de busca adversarial para jogos de soma zero com dois jogadores. O jogador <b>MAX</b> tenta maximizar a pontuação, enquanto <b>MIN</b> tenta minimizá-la. O algoritmo percorre toda a árvore de jogo até os estados terminais e propaga os valores de volta pela recursão.<br><br>
+          <b>Complexidade:</b> O(b<sup>m</sup>) em tempo e espaço, onde <i>b</i> é o fator de ramificação e <i>m</i> é a profundidade máxima. No jogo da velha: b≈4 e m=9.
+        </div>
+        <div class="info-box" style="border-left-color:#206020; border-color:#38a038; background:#f0fff0;">
+          <b>Poda Alfa-Beta</b> é uma otimização do Minimax que elimina ramos da árvore sem comprometer o resultado. Dois valores são mantidos:<br>
+          — <b>α (alfa):</b> melhor valor que MAX garantiu até agora<br>
+          — <b>β (beta):</b> melhor valor que MIN garantiu até agora<br><br>
+          Quando β ≤ α, o ramo atual nunca será escolhido por um jogador ótimo e pode ser podado. No <b>melhor caso</b>, a complexidade cai para <b>O(b<sup>m/2</sup>)</b>.
+        </div>
+      </div>
+    </div>
+    <div class="inset" style="margin-top:8px;">
+      <div class="inset-title red">🎮 Como Jogar</div>
+      <div class="inset-body">
+        <div class="info-box">
+          <b>Humano vs IA:</b> Clique em uma célula para jogar. A IA responde automaticamente usando Minimax ou Alfa-Beta (configurável na toolbar).<br><br>
+          <b>Humano vs Humano:</b> Dois jogadores se revezam clicando nas células. Útil para testar o jogo manualmente.<br><br>
+          <b>Jogar como X ou O:</b> Escolha na toolbar se deseja jogar com X (abre o jogo) ou O (IA abre).<br><br>
+          <b>Aba Comparativo:</b> Ative antes de iniciar uma partida para ver em tempo real quantos nós cada algoritmo explora por jogada.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.window -->
+
+<!-- Taskbar -->
+<div class="taskbar">
+  <div class="start-btn">🪟 Iniciar</div>
+  <div class="taskbar-sep"></div>
+  <div class="taskbar-item">❌ Jogo da Velha</div>
+  <div class="taskbar-sep"></div>
+  <div class="taskbar-clock" id="clock">00:00</div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  // Clock
+  (function tick() {
+    const d = new Date();
+    document.getElementById('clock').textContent =
+      String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    setTimeout(tick, 10000);
+  })();
+</script>
+</body>
+</html>
